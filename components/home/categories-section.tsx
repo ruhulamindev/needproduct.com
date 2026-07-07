@@ -3,13 +3,14 @@
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 
+// type
 type Product = {
   id: string
   name: string
   category: string
   image: string
 }
-
+// type
 type Category = {
   id: string
   title: string
