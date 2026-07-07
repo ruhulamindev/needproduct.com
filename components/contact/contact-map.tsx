@@ -1,10 +1,18 @@
 export default function ContactMap() {
   return (
     <div className="mt-12">
-      <h2 className="text-2xl font-bold text-slate-800 mb-6">Find Us</h2>
-      <div className="bg-gray-200 rounded-lg h-64 md:h-96 flex items-center justify-center">
-        <p className="text-slate-600">Interactive Map Placeholder</p>
-        {/* In a real implementation, you would integrate with Google Maps or similar */}
+      <h2 className="text-2xl font-bold text-slate-800 mb-6">আমাদের অবস্থান</h2>
+      <div className="rounded-lg overflow-hidden shadow-sm h-64 md:h-96">
+        <iframe
+          title="NeedProduct Location"
+          src="https://www.google.com/maps?q=Rajshahi,Bangladesh&output=embed"
+          width="100%"
+          height="100%"
+          style={{ border: 0 }}
+          allowFullScreen
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+        />
       </div>
     </div>
   )

@@ -1,6 +1,13 @@
 "use client"
 
-import { createContext, useContext, useReducer, type ReactNode } from "react"
+import {
+  createContext,
+  useContext,
+  useReducer,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react"
 
 interface CartItem {
   id: string
@@ -22,10 +29,12 @@ type CartAction =
   | { type: "REMOVE_ITEM"; payload: string }
   | { type: "UPDATE_QUANTITY"; payload: { id: string; quantity: number } }
   | { type: "CLEAR_CART" }
+  | { type: "LOAD"; payload: CartItem[] }
 
 const CartContext = createContext<{
   items: CartItem[]
   total: number
+  isLoaded: boolean // 👈 নতুন
   addItem: (item: CartItem) => void
   removeItem: (id: string) => void
   updateQuantity: (id: string, quantity: number) => void
@@ -39,8 +48,9 @@ function calculateTotal(items: CartItem[]) {
 function cartReducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
     case "ADD_ITEM": {
-      const existingItem = state.items.find((item) => item.id === action.payload.id)
-
+      const existingItem = state.items.find(
+        (item) => item.id === action.payload.id
+      )
       let updatedItems: CartItem[]
       if (existingItem) {
         updatedItems = state.items.map((item) =>
@@ -51,21 +61,14 @@ function cartReducer(state: CartState, action: CartAction): CartState {
       } else {
         updatedItems = [...state.items, action.payload]
       }
-
-      return {
-        items: updatedItems,
-        total: calculateTotal(updatedItems),
-      }
+      return { items: updatedItems, total: calculateTotal(updatedItems) }
     }
-
     case "REMOVE_ITEM": {
-      const filteredItems = state.items.filter((item) => item.id !== action.payload)
-      return {
-        items: filteredItems,
-        total: calculateTotal(filteredItems),
-      }
+      const filteredItems = state.items.filter(
+        (item) => item.id !== action.payload
+      )
+      return { items: filteredItems, total: calculateTotal(filteredItems) }
     }
-
     case "UPDATE_QUANTITY": {
       const updatedItems = state.items
         .map((item) =>
@@ -74,16 +77,12 @@ function cartReducer(state: CartState, action: CartAction): CartState {
             : item
         )
         .filter((item) => item.quantity > 0)
-
-      return {
-        items: updatedItems,
-        total: calculateTotal(updatedItems),
-      }
+      return { items: updatedItems, total: calculateTotal(updatedItems) }
     }
-
     case "CLEAR_CART":
       return { items: [], total: 0 }
-
+    case "LOAD":
+      return { items: action.payload, total: calculateTotal(action.payload) }
     default:
       return state
   }
@@ -91,30 +90,42 @@ function cartReducer(state: CartState, action: CartAction): CartState {
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(cartReducer, { items: [], total: 0 })
+  const [isLoaded, setIsLoaded] = useState(false)
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("cart")
+      if (saved) dispatch({ type: "LOAD", payload: JSON.parse(saved) })
+    } catch (err) {
+      console.error("Cart load failed:", err)
+    } finally {
+      setIsLoaded(true)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isLoaded) return
+    localStorage.setItem("cart", JSON.stringify(state.items))
+  }, [state.items, isLoaded])
 
   const addItem = (item: CartItem) => {
-    if (item.quantity <= 0) return // invalid quantity check
+    if (item.quantity <= 0) return
     dispatch({ type: "ADD_ITEM", payload: item })
   }
-
-  const removeItem = (id: string) => {
+  const removeItem = (id: string) =>
     dispatch({ type: "REMOVE_ITEM", payload: id })
-  }
-
   const updateQuantity = (id: string, quantity: number) => {
-    if (quantity < 0) return // avoid negative quantity
+    if (quantity < 0) return
     dispatch({ type: "UPDATE_QUANTITY", payload: { id, quantity } })
   }
-
-  const clearCart = () => {
-    dispatch({ type: "CLEAR_CART" })
-  }
+  const clearCart = () => dispatch({ type: "CLEAR_CART" })
 
   return (
     <CartContext.Provider
       value={{
         items: state.items,
         total: state.total,
+        isLoaded, // 👈 নতুন
         addItem,
         removeItem,
         updateQuantity,

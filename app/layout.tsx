@@ -12,10 +12,10 @@ import { AuthProvider } from "@/contexts/auth-context"
 // UI Components
 import { Toaster } from "@/components/ui/toaster"
 
-// Layout Components
-import Header from "@/components/layout/header"
-import Navigation from "@/components/layout/navigation"
-import Footer from "@/components/layout/footer"
+// // Layout Components
+// import Header from "@/components/layout/header"
+// import Navigation from "@/components/layout/navigation"
+// import Footer from "@/components/layout/footer"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -39,14 +39,14 @@ export default function RootLayout({
             <CompareProvider>
               <CartProvider>
                 {/* Header এবং Navigation সব পেজে থাকবে */}
-                <Header />
-                <Navigation />
+                {/* <Header /> */}
+                {/* <Navigation /> */}
 
                 {/* এখানে পেজের কন্টেন্ট আসবে */}
                 <main>{children}</main>
 
                 {/* Footer সব পেজে থাকবে */}
-                <Footer />
+                {/* <Footer /> */}
 
                 {/* Toast Notification */}
                 <Toaster />

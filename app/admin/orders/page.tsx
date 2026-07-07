@@ -1,7 +1,7 @@
 import AdminLayout from "@/components/admin/admin-layout"
-import OrdersTable from "@/components/admin/orders-table"
+import OrdersTable from "@/components/admin/order/orders-table"
 
-export default function OrdersPage() {
+export default function AdminOrdersPage() {
   return (
     <AdminLayout>
       <OrdersTable />

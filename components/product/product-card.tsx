@@ -9,7 +9,7 @@ import { useCompare } from "@/contexts/compare-context"
 import { useAuth } from "@/contexts/auth-context"
 import { Heart, BarChart2, ShoppingCart, Star } from "lucide-react"
 import { useState, useEffect } from "react"
-import { toast } from "@/hooks/use-toast" // যদি তোমার project e use-toast hook থাকে
+import { toast } from "@/hooks/use-toast"
 
 export default function ProductCard({ product }: { product: Product }) {
   const { addItem } = useCart()
@@ -23,10 +23,18 @@ export default function ProductCard({ product }: { product: Product }) {
     setWishlisted(isInWishlist(product.id))
   }, [isInWishlist, product.id])
 
-  const hasDiscount = product.originalPrice !== undefined && product.originalPrice > product.price
-  const discountPercent = hasDiscount
-    ? Math.round(((product.originalPrice! - product.price) / product.originalPrice!) * 100)
-    : 0
+  // ===== Discount হিসাব (% থেকে) =====
+  const discount = product.discount ?? 0
+  const hasDiscount = discount > 0
+
+  // JSON-এর price = আসল দাম; discount বাদ দিয়ে final দাম
+  const finalPrice = hasDiscount
+    ? Math.round(product.price - (product.price * discount) / 100)
+    : product.price
+
+  // ===== Stock check =====
+  // stock 0 হলে বা inStock false হলে — out of stock
+  const inStock = (product.stock ?? 0) > 0 && product.inStock !== false
 
   const handleAddToCart = () => {
     if (!user) {
@@ -40,7 +48,7 @@ export default function ProductCard({ product }: { product: Product }) {
     addItem({
       id: product.id,
       name: product.name,
-      price: product.price,
+      price: finalPrice, // ছাড়ের পরের দাম cart-এ যাবে
       image: product.image,
       quantity: 1,
     })
@@ -71,9 +79,9 @@ export default function ProductCard({ product }: { product: Product }) {
       addWishlist({
         id: product.id,
         name: product.name,
-        price: product.price,
+        price: finalPrice,
         image: product.image,
-        originalPrice: product.originalPrice,
+        originalPrice: hasDiscount ? product.price : undefined,
       })
       setWishlisted(true)
       toast({
@@ -83,7 +91,7 @@ export default function ProductCard({ product }: { product: Product }) {
     }
   }
 
-  const handleCompare = () => {
+const handleCompare = () => {
     if (!user) {
       toast({
         title: "Login Required",
@@ -96,13 +104,13 @@ export default function ProductCard({ product }: { product: Product }) {
     addCompare({
       id: product.id,
       name: product.name,
-      price: product.price,
+      price: product.price,        // 👈 আসল দাম (finalPrice না)
+      discount: product.discount,  // 👈 discount আলাদা করে পাঠাচ্ছি
       image: product.image,
-      originalPrice: product.originalPrice,
       category: product.category,
       rating: product.rating ?? 4,
       reviews: product.reviews ?? 10,
-      inStock: product.inStock ?? true,
+      inStock,
     })
     toast({
       title: "Added to Compare",
@@ -111,15 +119,22 @@ export default function ProductCard({ product }: { product: Product }) {
   }
 
   return (
-    <div className="relative group bg-white border rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-300">
-      {/* Discount Badge */}
+    <div className="relative group bg-white border rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-300 flex flex-col">
+      {/* Discount Badge — discount থাকলেই */}
       {hasDiscount && (
-        <div className="absolute top-2 left-2 bg-red-600 text-white text-[10px] px-2 py-0.5 rounded z-10">
-          -{discountPercent}%
+        <div className="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded z-10">
+          -{discount}%
         </div>
       )}
 
-      {/* Wishlist & Compare Buttons */}
+      {/* Out of Stock Badge */}
+      {!inStock && (
+        <div className="absolute top-2 left-2 bg-slate-700 text-white text-[10px] font-bold px-2 py-0.5 rounded z-10">
+          Out of Stock
+        </div>
+      )}
+
+      {/* Wishlist & Compare */}
       <div className="absolute top-2 right-2 flex flex-col gap-2 z-10">
         <button
           onClick={toggleWishlist}
@@ -137,61 +152,71 @@ export default function ProductCard({ product }: { product: Product }) {
         </button>
       </div>
 
-      {/* Product Image */}
+      {/* Image */}
       <Link href={`/product/${product.id}`} className="block">
-        <div className="relative w-full h-52">
+        <div className="relative w-full h-40 md:h-44">
           <Image
             src={product.image}
             alt={product.name}
             fill
             className="object-cover group-hover:scale-105 transition-transform duration-300"
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            priority
+            sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
           />
         </div>
       </Link>
 
-      {/* Product Details */}
-      <div className="p-4 relative">
-        <h2 className="text-lg font-semibold text-slate-800 group-hover:text-blue-600 transition-colors duration-300">
-          {product.name}
-        </h2>
+      {/* Details */}
+      <div className="p-3 flex flex-col flex-grow">
+        {/* Name */}
+        <Link href={`/product/${product.id}`}>
+          <h2 className="text-sm md:text-base font-semibold text-slate-800 group-hover:text-blue-600 transition-colors line-clamp-1">
+            {product.name}
+          </h2>
+        </Link>
 
-        {/* Add to Cart button */}
-        <div className="flex justify-end mt-1 mb-2">
-          <button
-            onClick={handleAddToCart}
-            className="bg-green-600 text-white px-3 py-1 rounded shadow hover:bg-green-700 transition text-sm flex items-center gap-1"
-            title="Add to Cart"
-          >
-            <ShoppingCart className="w-4 h-4" />
-            Add to Cart
-          </button>
+        {/* Category */}
+        <p className="text-slate-500 text-xs mt-0.5 capitalize">{product.category}</p>
+
+        {/* Price Block */}
+        <div className="mt-2 flex items-center gap-2 flex-wrap">
+          <span className="text-green-600 font-bold text-base md:text-lg">
+            ৳{finalPrice}
+          </span>
+          {hasDiscount && (
+            <span className="text-slate-400 text-sm line-through">
+              ৳{product.price}
+            </span>
+          )}
         </div>
 
-        <p className="text-slate-600 text-sm">{product.category}</p>
-
-        <div className="flex justify-between items-center mt-2">
-          <p className="text-green-600 font-bold">${product.price.toFixed(2)}</p>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 text-yellow-500 text-sm">
-              <Star className="w-4 h-4 fill-yellow-400" />
-              <span className="text-slate-700">
-                {product.rating ?? 4} ({product.reviews ?? 10})
-              </span>
-            </div>
-            <Link
-              href={`/product/${product.id}`}
-              className="text-blue-600 text-sm hover:underline"
-            >
-              Details
-            </Link>
-          </div>
+        {/* Rating */}
+        <div className="flex items-center gap-1 text-yellow-500 text-xs mt-2">
+          <Star className="w-3.5 h-3.5 fill-yellow-400" />
+          <span className="text-slate-700">
+            {product.rating ?? 4}{" "}
+            <span className="text-slate-400">({product.reviews ?? 10})</span>
+          </span>
         </div>
 
-        <p className={`mt-1 text-xs font-medium ${product.inStock ? "text-green-600" : "text-red-600"}`}>
-          {product.inStock ? "In Stock" : "Out of Stock"}
+        {/* Stock */}
+        <p className={`mt-1 text-xs font-medium ${inStock ? "text-green-600" : "text-red-600"}`}>
+          {inStock ? "In Stock" : "Out of Stock"}
         </p>
+
+        {/* Add to Cart */}
+        <button
+          onClick={handleAddToCart}
+          disabled={!inStock}
+          className={`mt-3 w-full py-1.5 rounded text-sm flex items-center justify-center gap-1 transition ${
+            inStock
+              ? "bg-green-600 text-white hover:bg-green-700"
+              : "bg-slate-200 text-slate-400 cursor-not-allowed"
+          }`}
+          title={inStock ? "Add to Cart" : "Out of Stock"}
+        >
+          <ShoppingCart className="w-4 h-4" />
+          {inStock ? "Add to Cart" : "Out of Stock"}
+        </button>
       </div>
     </div>
   )

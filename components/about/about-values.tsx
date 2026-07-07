@@ -1,26 +1,26 @@
-import { Award, Heart, Leaf, Users } from "lucide-react"
+import { Award, Heart, Truck, ShieldCheck } from "lucide-react"
 
 export default function AboutValues() {
   const values = [
     {
       icon: Award,
-      title: "Quality Excellence",
-      description: "We never compromise on quality. Every piece is crafted with meticulous attention to detail.",
+      title: "মানের নিশ্চয়তা",
+      description: "প্রতিটি পণ্য যাচাই করে, মান নিশ্চিত করে তবেই আমরা বিক্রি করি।",
     },
     {
       icon: Heart,
-      title: "Customer First",
-      description: "Our customers are at the heart of everything we do. Your satisfaction is our priority.",
+      title: "গ্রাহক প্রথম",
+      description: "আপনার সন্তুষ্টিই আমাদের অগ্রাধিকার। যেকোনো প্রয়োজনে আমরা পাশে আছি।",
     },
     {
-      icon: Leaf,
-      title: "Sustainable Fashion",
-      description: "We're committed to sustainable practices and ethical manufacturing processes.",
+      icon: Truck,
+      title: "ক্যাশ অন ডেলিভারি",
+      description: "পণ্য হাতে পেয়ে, দেখে, তারপর টাকা দিন — সারা বাংলাদেশে।",
     },
     {
-      icon: Users,
-      title: "Cultural Heritage",
-      description: "Preserving and celebrating our rich cultural traditions through modern fashion.",
+      icon: ShieldCheck,
+      title: "নির্ভরযোগ্য সেবা",
+      description: "দ্রুত ডেলিভারি আর বিশ্বাসযোগ্য সেবার প্রতিশ্রুতি।",
     },
   ]
 
@@ -28,17 +28,19 @@ export default function AboutValues() {
     <section className="py-16 bg-gray-50">
       <div className="max-w-7xl mx-auto px-4">
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-4">Our Values</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-4">
+            আমাদের মূল্যবোধ
+          </h2>
           <p className="text-slate-600 max-w-2xl mx-auto">
-            These core values guide everything we do and shape the way we serve our customers.
+            এই মূল্যবোধগুলোই আমাদের প্রতিটি কাজে পথ দেখায় আর গ্রাহকসেবার ভিত্তি গড়ে।
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {values.map((value, index) => (
-            <div key={index} className="bg-white p-6 rounded-lg shadow-sm text-center">
-              <div className="inline-flex items-center justify-center w-12 h-12 bg-slate-100 rounded-lg mb-4">
-                <value.icon className="w-6 h-6 text-slate-600" />
+            <div key={index} className="bg-white p-6 rounded-lg shadow-sm text-center hover:shadow-md transition-shadow">
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-red-50 rounded-lg mb-4">
+                <value.icon className="w-6 h-6 text-red-600" />
               </div>
               <h3 className="text-lg font-semibold text-slate-800 mb-2">{value.title}</h3>
               <p className="text-slate-600 text-sm">{value.description}</p>

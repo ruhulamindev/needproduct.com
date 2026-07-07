@@ -1,44 +1,136 @@
 "use client"
+
 import React, { useState } from "react"
 import Link from "next/link"
-import { Menu } from "lucide-react"
+import { usePathname } from "next/navigation"
+import {
+  LayoutDashboard,
+  Package,
+  ShoppingBag,
+  Users,
+  Settings,
+  Menu,
+  X,
+  Store,
+  LogOut,
+} from "lucide-react"
+
+const navItems = [
+  { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/products", label: "Products", icon: Package },
+  { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
+  { href: "/admin/users", label: "Users", icon: Users },
+  { href: "/admin/settings", label: "Settings", icon: Settings },
+]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const pathname = usePathname()
 
-  return (
-    <div className="min-h-screen flex flex-col lg:flex-row">
-      {/* Mobile Header with toggle */}
-      <div className="flex justify-between items-center p-4 bg-slate-900 text-white lg:hidden">
-        <h2 className="text-xl font-bold">Admin Panel</h2>
-        <button onClick={() => setSidebarOpen(!sidebarOpen)}>
-          <Menu className="w-6 h-6" />
-        </button>
+  const SidebarContent = () => (
+    <>
+      {/* Brand */}
+      <div className="flex items-center gap-2 px-2 mb-8">
+        <div className="w-9 h-9 bg-red-600 rounded-lg flex items-center justify-center font-bold text-white">
+          N
+        </div>
+        <div>
+          <p className="font-bold leading-tight">NeedProduct</p>
+          <p className="text-xs text-slate-400">Admin Panel</p>
+        </div>
       </div>
 
-      {/* Sidebar */}
-      <aside
-        className={`${
-          sidebarOpen ? "block" : "hidden"
-        } lg:block w-full lg:w-64 bg-slate-900 text-white p-6 space-y-4 lg:min-h-screen`}
-      >
-        <nav className="space-y-2">
-          <Link href="/admin" className="block hover:text-blue-400">Dashboard</Link>
-          <Link href="/admin/products" className="block hover:text-blue-400">Products</Link>
-          <Link href="/admin/orders" className="block hover:text-blue-400">Orders</Link>
-          <Link href="/admin/users" className="block hover:text-blue-400">Users</Link>
-          <Link href="/admin/settings" className="block hover:text-blue-400">Settings</Link>
-        </nav>
+      {/* Nav */}
+      <nav className="space-y-1">
+        {navItems.map((item) => {
+          // /admin এর ক্ষেত্রে exact match, বাকিগুলো startsWith
+          const isActive =
+            item.href === "/admin"
+              ? pathname === "/admin"
+              : pathname.startsWith(item.href)
+          const Icon = item.icon
+
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={() => setSidebarOpen(false)}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                isActive
+                  ? "bg-red-600 text-white"
+                  : "text-slate-300 hover:bg-slate-800 hover:text-white"
+              }`}
+            >
+              <Icon className="w-5 h-5" />
+              {item.label}
+            </Link>
+          )
+        })}
+      </nav>
+
+      {/* Bottom links */}
+      <div className="mt-8 pt-6 border-t border-slate-700 space-y-1">
+        <Link
+          href="/"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+        >
+          <Store className="w-5 h-5" />
+          Back to Site
+        </Link>
+        <Link
+          href="/logout"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-red-400 hover:bg-slate-800 transition-colors"
+        >
+          <LogOut className="w-5 h-5" />
+          Logout
+        </Link>
+      </div>
+    </>
+  )
+
+  return (
+    <div className="min-h-screen flex bg-gray-100">
+      {/* ===== Desktop Sidebar ===== */}
+      <aside className="hidden lg:flex flex-col w-64 bg-slate-900 text-white p-4 fixed h-screen">
+        <SidebarContent />
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 bg-gray-100 p-4">
-        <header className="text-2xl font-bold mb-6 border-b pb-2">Admin Dashboard</header>
-        {children}
-        <footer className="mt-12 text-sm text-center text-gray-500">
-          &copy; 2025 LargeSoft Tech. All rights reserved.
+      {/* ===== Mobile Sidebar (drawer) ===== */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setSidebarOpen(false)}
+          />
+          <aside className="absolute left-0 top-0 h-full w-64 bg-slate-900 text-white p-4 overflow-y-auto">
+            <SidebarContent />
+          </aside>
+        </div>
+      )}
+
+      {/* ===== Main Content ===== */}
+      <div className="flex-1 lg:ml-64 flex flex-col min-h-screen">
+        {/* Mobile Top Bar */}
+        <div className="lg:hidden flex items-center justify-between p-4 bg-slate-900 text-white sticky top-0 z-40">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center font-bold text-sm">
+              N
+            </div>
+            <span className="font-bold">Admin Panel</span>
+          </div>
+          <button onClick={() => setSidebarOpen(true)} aria-label="Menu">
+            <Menu className="w-6 h-6" />
+          </button>
+        </div>
+
+        {/* Page Content */}
+        <main className="flex-1 p-4 md:p-6">{children}</main>
+
+        {/* Footer */}
+        <footer className="py-4 text-center text-xs text-slate-400 border-t border-slate-200">
+          © {new Date().getFullYear()} NeedProduct. All rights reserved.
         </footer>
-      </main>
+      </div>
     </div>
   )
 }
