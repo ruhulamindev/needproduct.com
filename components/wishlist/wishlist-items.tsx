@@ -105,9 +105,9 @@ export default function WishlistItems() {
         {items.map((item) => {
           const hasDiscount =
             item.originalPrice && item.originalPrice > item.price
-          const discountPercent = hasDiscount
+const discountPercent = hasDiscount
             ? Math.round(
-                ((item.originalPrice - item.price) / item.originalPrice) * 100
+                ((item.originalPrice! - item.price) / item.originalPrice!) * 100
               )
             : 0
 

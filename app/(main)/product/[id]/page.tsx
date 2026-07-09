@@ -8,6 +8,7 @@ import { useEffect, useState } from "react"
 import { Product } from "@/types/product"
 import { ShoppingCart, Star } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
+import { fetchProductById } from "@/lib/products-api"
 
 export default function ProductDetails() {
   const { id } = useParams()
@@ -22,21 +23,31 @@ export default function ProductDetails() {
   useEffect(() => {
     async function loadProduct() {
       try {
-        const res = await fetch("/data/products.json")
-        const products: Product[] = await res.json()
+        const found = await fetchProductById(String(id))
+        setProduct(found)
 
-        const foundProduct = products.find(
-          (p) => p.id.toString() === id?.toString()
-        )
+        // const res = await fetch("/data/products.json")
+        // const products: Product[] = await res.json()
 
-        if (!foundProduct) {
-          router.push("/404")
-          return
-        }
+        // const foundProduct = products.find(
+        //   (p) => p.id.toString() === id?.toString()
+        // )
 
-        setProduct(foundProduct)
+        // if (!foundProduct) {
+        //   router.push("/404")
+        //   return
+        // }
+
+        // setProduct(foundProduct)
+      // } catch (error) {
+      //   console.error("Failed to load product:", error)
+      // } finally {
+      //   setLoading(false)
+      // }
+
       } catch (error) {
         console.error("Failed to load product:", error)
+        router.push("/404")
       } finally {
         setLoading(false)
       }

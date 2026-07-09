@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -10,10 +10,11 @@ import {
   Users,
   Settings,
   Menu,
-  X,
   Store,
   LogOut,
 } from "lucide-react"
+import { verifyAdmin, logoutAdmin } from "@/lib/admin-auth"
+import AdminLogin from "./admin-login"
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -25,7 +26,34 @@ const navItems = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [authed, setAuthed] = useState(false)
+  const [checked, setChecked] = useState(false) // login check শেষ হয়েছে কিনা
+
   const pathname = usePathname()
+
+  // ===== শুরুতে login check =====
+useEffect(() => {
+    verifyAdmin().then((ok) => {   // 👈 backend-এ যাচাই
+      setAuthed(ok)
+      setChecked(true)
+    })
+  }, [])
+
+  const handleLogout = async () => { await logoutAdmin(); setAuthed(false) }
+
+  // check চলাকালীন কিছু দেখাবে না (flash এড়াতে)
+  if (!checked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white">
+        লোড হচ্ছে...
+      </div>
+    )
+  }
+
+  // 🔒 login না থাকলে → login page
+  if (!authed) {
+    return <AdminLogin onSuccess={() => setAuthed(true)} />
+  }
 
   const SidebarContent = () => (
     <>
@@ -43,7 +71,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Nav */}
       <nav className="space-y-1">
         {navItems.map((item) => {
-          // /admin এর ক্ষেত্রে exact match, বাকিগুলো startsWith
           const isActive =
             item.href === "/admin"
               ? pathname === "/admin"
@@ -77,13 +104,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <Store className="w-5 h-5" />
           Back to Site
         </Link>
-        <Link
-          href="/logout"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-red-400 hover:bg-slate-800 transition-colors"
+
+        {/* 👇 Logout এখন button — সরাসরি logout করবে */}
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-red-400 hover:bg-slate-800 transition-colors"
         >
           <LogOut className="w-5 h-5" />
           Logout
-        </Link>
+        </button>
       </div>
     </>
   )

@@ -6,6 +6,7 @@ import { SlidersHorizontal, X } from "lucide-react"
 import ProductCard from "@/components/product/product-card"
 import ShopFilters, { Filters } from "@/components/shop/shop-filters"
 import { Product } from "@/types/product"
+import { fetchProducts } from "@/lib/products-api"
 
 export default function ShopPageContent() {
   const searchParams = useSearchParams()
@@ -25,13 +26,12 @@ export default function ShopPageContent() {
   })
 
   // Load products
-  useEffect(() => {
+useEffect(() => {
     async function loadProducts() {
       try {
         setLoading(true)
-        const res = await fetch("/data/products.json")
-        const data: Product[] = await res.json()
-        setProducts(data)
+        const { products } = await fetchProducts({ limit: 100 })
+        setProducts(products)
       } catch (error) {
         console.error("Failed to load products:", error)
       } finally {

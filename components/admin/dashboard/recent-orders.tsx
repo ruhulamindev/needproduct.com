@@ -23,9 +23,11 @@ const statusLabel: Record<string, string> = {
 
 export default function RecentOrders() {
   return (
-    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+    <div className="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-100">
       <h3 className="text-lg font-bold mb-4 text-slate-800">সাম্প্রতিক অর্ডার</h3>
-      <div className="overflow-x-auto">
+
+      {/* ===== Desktop Table ===== */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead>
             <tr className="text-left text-xs text-slate-500 uppercase border-b">
@@ -50,6 +52,27 @@ export default function RecentOrders() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* ===== Mobile Cards ===== */}
+      <div className="md:hidden space-y-3">
+        {orders.map((order) => (
+          <div key={order.id} className="border border-slate-100 rounded-lg p-3">
+            <div className="flex justify-between items-start gap-2 mb-2">
+              <div className="min-w-0">
+                <p className="font-medium text-sm text-slate-800 truncate">{order.id}</p>
+                <p className="text-xs text-slate-500 mt-0.5">{order.customer}</p>
+              </div>
+              <span className={`text-[10px] font-medium px-2 py-1 rounded-full whitespace-nowrap ${statusStyle[order.status]}`}>
+                {statusLabel[order.status]}
+              </span>
+            </div>
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-slate-400">{order.date}</span>
+              <span className="font-bold text-green-600 text-sm">৳{order.total}</span>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   )

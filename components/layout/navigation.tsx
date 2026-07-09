@@ -32,7 +32,6 @@ const navLinks = [
   { href: "/request", label: "REQUEST" },
 ]
 
-// SearchBar — live search সহ, clear button
 function SearchBar({
   value,
   onChange,
@@ -56,7 +55,6 @@ function SearchBar({
           placeholder="Search products..."
           className="w-full border border-slate-300 rounded-full py-2 pl-4 pr-16 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400"
         />
-
         {value && (
           <button
             type="button"
@@ -67,7 +65,6 @@ function SearchBar({
             <X className="w-3.5 h-3.5 text-slate-500" />
           </button>
         )}
-
         <button
           type="submit"
           aria-label="Search"
@@ -80,7 +77,6 @@ function SearchBar({
   )
 }
 
-// UserMenu — শুধু Profile (login থাকলে), নাহলে Login/Register
 function UserMenu({ user }: { user: any }) {
   const links = user
     ? [{ href: "/profile", label: "Profile" }]
@@ -113,20 +109,27 @@ function UserMenu({ user }: { user: any }) {
 export default function Navigation() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+    const [mounted, setMounted] = useState(false)   // 👈 নতুন
+
 
   const pathname = usePathname()
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  const { items } = useCart()
-  const { items: wishlistItems } = useWishlist()
-  const { items: compareItems } = useCompare()
+  // 👇 isLoaded নিলাম — hydration mismatch এড়াতে
+  const { items, isLoaded: cartLoaded } = useCart()
+  const { items: wishlistItems, isLoaded: wishlistLoaded } = useWishlist()
+  const { items: compareItems, isLoaded: compareLoaded } = useCompare()
   const { user } = useAuth()
 
   const itemCount = items.reduce((total, item) => total + item.quantity, 0)
   const isShopPage = pathname === "/shop"
 
-  // URL → input sync
+  // browser-এ mount হওয়ার পর true — server render-এ false থাকে
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   useEffect(() => {
     if (isShopPage) {
       setSearchQuery(searchParams.get("search") || "")
@@ -134,21 +137,16 @@ export default function Navigation() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isShopPage])
 
-  // LIVE SEARCH — debounced 300ms
   useEffect(() => {
     if (!isShopPage) return
-
     const timeout = setTimeout(() => {
       const params = new URLSearchParams(Array.from(searchParams.entries()))
       const q = searchQuery.trim()
-
       if (q) params.set("search", q)
       else params.delete("search")
-
       const query = params.toString()
       router.replace(query ? `/shop?${query}` : "/shop", { scroll: false })
     }, 300)
-
     return () => clearTimeout(timeout)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, isShopPage])
@@ -164,23 +162,19 @@ export default function Navigation() {
     setMobileMenuOpen(false)
   }
 
-  const handleClear = () => {
-    setSearchQuery("")
-  }
+  const handleClear = () => setSearchQuery("")
 
   return (
     <nav className="bg-white shadow-sm border-b sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4">
         {/* ===== Main Bar ===== */}
         <div className="flex justify-between items-center h-16 gap-4">
-          {/* Logo */}
           <Link href="/" className="flex items-center shrink-0">
             <div className="text-xl md:text-2xl font-bold text-slate-800">
               <span className="text-slate-800">N</span>eedProduct
             </div>
           </Link>
 
-          {/* Desktop Search — শুধু shop page-এ */}
           {isShopPage && (
             <SearchBar
               value={searchQuery}
@@ -199,7 +193,7 @@ export default function Navigation() {
               className="p-2 rounded-full border border-slate-300 hover:bg-slate-50 relative transition-colors"
             >
               <Heart className="w-5 h-5 text-slate-600" />
-              {wishlistItems.length > 0 && (
+              {mounted && wishlistItems.length > 0 && (
                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                   {wishlistItems.length}
                 </span>
@@ -212,7 +206,7 @@ export default function Navigation() {
               className="p-2 rounded-full border border-slate-300 hover:bg-slate-50 relative transition-colors"
             >
               <BarChart3 className="w-5 h-5 text-slate-600" />
-              {compareItems.length > 0 && (
+              {mounted && compareItems.length > 0 && (
                 <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                   {compareItems.length}
                 </span>
@@ -225,7 +219,7 @@ export default function Navigation() {
               className="p-2 rounded-full border border-slate-300 hover:bg-slate-50 relative transition-colors"
             >
               <ShoppingCart className="w-5 h-5 text-slate-600" />
-              {itemCount > 0 && (
+              {mounted && itemCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-slate-800 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                   {itemCount}
                 </span>
@@ -250,7 +244,7 @@ export default function Navigation() {
               className="p-2 rounded-full border border-slate-300 hover:bg-slate-50 relative"
             >
               <ShoppingCart className="w-5 h-5 text-slate-600" />
-              {itemCount > 0 && (
+              {cartLoaded && itemCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-slate-800 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
                   {itemCount}
                 </span>
@@ -265,16 +259,12 @@ export default function Navigation() {
               aria-label="Menu"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
-              {mobileMenuOpen ? (
-                <X className="w-6 h-6" />
-              ) : (
-                <Menu className="w-6 h-6" />
-              )}
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </Button>
           </div>
         </div>
 
-        {/* ===== Mobile Search Row — শুধু shop page-এ ===== */}
+        {/* Mobile Search */}
         {isShopPage && (
           <SearchBar
             value={searchQuery}
@@ -285,7 +275,7 @@ export default function Navigation() {
           />
         )}
 
-        {/* ===== Desktop Nav Links ===== */}
+        {/* Desktop Nav Links */}
         <div className="hidden md:flex justify-center gap-8 border-t border-slate-100">
           {navLinks.map((link) => {
             const isActive = pathname === link.href
@@ -305,7 +295,7 @@ export default function Navigation() {
           })}
         </div>
 
-        {/* ===== Mobile Menu Drawer ===== */}
+        {/* Mobile Menu Drawer */}
         {mobileMenuOpen && (
           <div className="md:hidden border-t border-slate-200 py-4">
             <div className="flex flex-col space-y-1">
@@ -334,7 +324,7 @@ export default function Navigation() {
                   className="flex items-center text-slate-800 hover:bg-slate-50 font-medium py-2 px-4 rounded-lg transition-colors"
                 >
                   <Heart className="w-5 h-5 mr-3" />
-                  Wishlist ({wishlistItems.length})
+                  Wishlist ({mounted ? wishlistItems.length : 0})
                 </Link>
                 <Link
                   href="/compare"
@@ -342,10 +332,9 @@ export default function Navigation() {
                   className="flex items-center text-slate-800 hover:bg-slate-50 font-medium py-2 px-4 rounded-lg transition-colors"
                 >
                   <BarChart3 className="w-5 h-5 mr-3" />
-                  Compare ({compareItems.length})
+                  Compare ({mounted ? compareItems.length : 0})
                 </Link>
 
-                {/* User — শুধু Profile / Login-Register */}
                 {(user
                   ? [{ href: "/profile", label: "Profile" }]
                   : [

@@ -1,14 +1,17 @@
+// types/product.ts
 export interface Product {
   id: string
   name: string
-  description: string
+  description?: string
   price: number
-  discount?: number   // optional
-  stock: number
-  category: string
+  discount?: number      // % ছাড়
+  originalPrice?: number
   image: string
-  images?: string[]    // gallery images (optional)
-  rating?: number          // optional
-  reviews?: number         // optional
-  inStock?: boolean        // optional
+  images?: string[]
+  category: string
+  rating?: number
+  reviews?: number
+  stock?: number
+  inStock?: boolean
+  featured?: boolean
 }

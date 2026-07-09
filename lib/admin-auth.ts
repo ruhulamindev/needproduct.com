@@ -1,35 +1,36 @@
 // lib/admin-auth.ts
+import { api } from "./api"
 
-// 🔴 এখানে তোমার admin email/password default set করো
-// ⚠️ এটা শুধু development-এর জন্য। Backend এলে server-side করতে হবে।
-export const ADMIN_CREDENTIALS = {
-  email: "admin@needproduct.com",
-  password: "admin123",
-}
+/** backend-এ login করে, role admin কিনা যাচাই করে। token httpOnly cookie-তে বসবে */
+export async function loginAdmin(email: string, password: string) {
+  const res = await api<{ data: { user: { role: string; name: string; email: string } } }>(
+    "/auth/login",
+    { method: "POST", body: JSON.stringify({ email, password }) }
+  )
 
-const AUTH_KEY = "admin_auth"
+  const { user } = res.data
 
-// login যাচাই
-export function loginAdmin(email: string, password: string): boolean {
-  const ok =
-    email.trim().toLowerCase() === ADMIN_CREDENTIALS.email.toLowerCase() &&
-    password === ADMIN_CREDENTIALS.password
-
-  if (ok && typeof window !== "undefined") {
-    localStorage.setItem(AUTH_KEY, "true")
+  if (user.role !== "admin") {
+    // admin না হলে cookie মুছে দাও, যাতে সাধারণ user login করে থেকে না যায়
+    await api("/auth/logout", { method: "POST" }).catch(() => {})
+    throw new Error("আপনার admin অনুমতি নেই।")
   }
-  return ok
+
+  localStorage.setItem("admin_user", JSON.stringify(user))
+  return user
 }
 
-// login করা আছে কিনা
-export function isAdminLoggedIn(): boolean {
-  if (typeof window === "undefined") return false
-  return localStorage.getItem(AUTH_KEY) === "true"
-}
-
-// logout
-export function logoutAdmin() {
-  if (typeof window !== "undefined") {
-    localStorage.removeItem(AUTH_KEY)
+/** backend-এ /auth/me দিয়ে যাচাই — cookie আছে কিনা, role admin কিনা */
+export async function verifyAdmin(): Promise<boolean> {
+  try {
+    const res = await api<{ data: { role: string } }>("/auth/me")
+    return res.data.role === "admin"
+  } catch {
+    return false
   }
+}
+
+export async function logoutAdmin() {
+  await api("/auth/logout", { method: "POST" }).catch(() => {})
+  localStorage.removeItem("admin_user")
 }

@@ -12,20 +12,19 @@ export default function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError("")
 
-    // ছোট delay (আসল login-এর মতো অনুভব)
-    setTimeout(() => {
-      if (loginAdmin(email, password)) {
-        onSuccess()
-      } else {
-        setError("ভুল email বা password।")
-      }
+    try {
+      await loginAdmin(email, password)   // 👈 এখন async, backend-এ যায়
+      onSuccess()
+    } catch (err: any) {
+      setError(err.message || "ভুল email বা password।")
+    } finally {
       setLoading(false)
-    }, 500)
+    }
   }
 
   return (
@@ -47,7 +46,6 @@ export default function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Email */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
             <div className="relative">
@@ -63,7 +61,6 @@ export default function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
             </div>
           </div>
 
-          {/* Password */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
             <div className="relative">

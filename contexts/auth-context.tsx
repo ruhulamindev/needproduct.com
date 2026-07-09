@@ -1,82 +1,126 @@
-"use client";
+"use client"
 
-import { createContext, useContext, useState, type ReactNode, useEffect } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  type ReactNode,
+} from "react"
+import { api } from "@/lib/api"
 
+// backend-এর সাথে মিলিয়ে role = "user" | "admin"
 export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: "customer" | "admin";
+  id: string
+  name: string
+  email: string
+  phone?: string
+  address?: string
+  role: "user" | "admin"
 }
 
 interface AuthContextType {
-  user: User | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
-  register: (name: string, email: string, password: string) => Promise<boolean>;
-  loading: boolean;
+  user: User | null
+  login: (email: string, password: string) => Promise<boolean>
+  register: (
+    name: string,
+    email: string,
+    password: string,
+    phone?: string
+  ) => Promise<boolean>
+  logout: () => Promise<void>
+  loading: boolean
+  error: string | null
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
+const AuthContext = createContext<AuthContextType | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
+  // ===== page load-এ: cookie আছে কিনা যাচাই (/auth/me) =====
+  // refresh দিলেও login থাকবে, কারণ token httpOnly cookie-তে
   useEffect(() => {
-    const token = localStorage.getItem("auth_token");
-    if (token) {
-      // Simulate API verification
-      setTimeout(() => {
-        const storedUser = JSON.parse(localStorage.getItem("user_data") || "{}");
-        if (storedUser?.id) setUser(storedUser);
-        setLoading(false);
-      }, 500);
-    } else {
-      setLoading(false);
+    async function checkAuth() {
+      try {
+        const res = await api<{ data: User }>("/auth/me")
+        setUser(res.data)
+      } catch {
+        setUser(null) // token নেই বা মেয়াদ শেষ
+      } finally {
+        setLoading(false)
+      }
     }
-  }, []);
+    checkAuth()
+  }, [])
 
+  // ===== Login =====
   const login = async (email: string, password: string): Promise<boolean> => {
-    await new Promise((res) => setTimeout(res, 500));
-
-    // Example login logic
-    if (email === "admin@manfare.com" && password === "admin123") {
-      const adminUser = { id: "1", name: "Admin User", email, role: "admin" as const };
-      setUser(adminUser);
-      localStorage.setItem("auth_token", "admin_token");
-      localStorage.setItem("user_data", JSON.stringify(adminUser));
-      return true;
-    } else if (email === "user@example.com" && password === "user123") {
-      const regularUser = { id: "2", name: "Regular User", email, role: "customer" as const };
-      setUser(regularUser);
-      localStorage.setItem("auth_token", "user_token");
-      localStorage.setItem("user_data", JSON.stringify(regularUser));
-      return true;
+    setError(null)
+    try {
+      const res = await api<{ data: { user: User } }>("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      })
+      setUser(res.data.user) // token cookie-তে চলে গেছে, আলাদা কিছু করতে হবে না
+      return true
+    } catch (err: any) {
+      setError(err.message || "Login failed")
+      return false
     }
-    return false;
-  };
+  }
 
-  const register = async (name: string, email: string, password: string): Promise<boolean> => {
-    await new Promise((res) => setTimeout(res, 500));
-    const newUser = { id: Date.now().toString(), name, email, role: "customer" as const };
-    setUser(newUser);
-    localStorage.setItem("auth_token", "new_user_token");
-    localStorage.setItem("user_data", JSON.stringify(newUser));
-    return true;
-  };
+  // ===== Register =====
+  const register = async (
+    name: string,
+    email: string,
+    password: string,
+    phone?: string
+  ): Promise<boolean> => {
+    setError(null)
+    try {
+      // ১. signup (account বানায়, কিন্তু login করায় না)
+      await api("/auth/signup", {
+        method: "POST",
+        body: JSON.stringify({ name, email, password, phone }),
+      })
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem("auth_token");
-    localStorage.removeItem("user_data");
-  };
+      // ২. signup-এর পর সাথে সাথে login (cookie বসাতে)
+      const res = await api<{ data: { user: User } }>("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      })
+      setUser(res.data.user)
+      return true
+    } catch (err: any) {
+      setError(err.message || "Registration failed")
+      return false
+    }
+  }
 
-  return <AuthContext.Provider value={{ user, login, logout, register, loading }}>{children}</AuthContext.Provider>;
+  // ===== Logout =====
+  const logout = async () => {
+    try {
+      await api("/auth/logout", { method: "POST" }) // backend cookie মুছবে
+    } catch {
+      // চুপচাপ — যাই হোক, local state পরিষ্কার করি
+    }
+    setUser(null)
+  }
+
+  return (
+    <AuthContext.Provider
+      value={{ user, login, register, logout, loading, error }}
+    >
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used within AuthProvider");
-  return context;
+  const context = useContext(AuthContext)
+  if (!context) throw new Error("useAuth must be used within AuthProvider")
+  return context
 }

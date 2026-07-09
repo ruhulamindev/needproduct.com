@@ -40,13 +40,13 @@ export default function Footer() {
               সারা বাংলাদেশে ক্যাশ অন ডেলিভারি সুবিধা।
             </p>
             <div className="flex space-x-4">
-              <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
+              <a href="#" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
                 <Facebook className="w-5 h-5 text-slate-300 hover:text-white transition-colors" />
               </a>
-              <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+              <a href="#" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
                 <Instagram className="w-5 h-5 text-slate-300 hover:text-white transition-colors" />
               </a>
-              <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" aria-label="Twitter">
+              <a href="#" target="_blank" rel="noopener noreferrer" aria-label="Twitter">
                 <Twitter className="w-5 h-5 text-slate-300 hover:text-white transition-colors" />
               </a>
             </div>

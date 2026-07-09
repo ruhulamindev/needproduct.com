@@ -2,15 +2,9 @@
 
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
+import { fetchProducts } from "@/lib/products-api"
+import { Product } from "@/types/product"
 
-// type
-type Product = {
-  id: string
-  name: string
-  category: string
-  image: string
-}
-// type
 type Category = {
   id: string
   title: string
@@ -19,8 +13,8 @@ type Category = {
 
 export default function CategoriesSection() {
   const [categories, setCategories] = useState<Category[]>([])
-  const [loading, setLoading] = useState(true)          // ✅ নতুন
-  const [error, setError] = useState<string | null>(null) // ✅ নতুন
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const isPausedRef = useRef(false)
@@ -32,21 +26,19 @@ export default function CategoriesSection() {
 
   const SPEED = 0.5
 
-  // Load categories
+  // ===== Load categories (API থেকে) =====
   useEffect(() => {
     const loadProducts = async () => {
       try {
         setLoading(true)
         setError(null)
 
-        const res = await fetch("/data/products.json")
-        if (!res.ok) throw new Error("Failed to load")
-
-        const products: Product[] = await res.json()
+        // 👇 API থেকে products, তারপর unique category বের করি
+        const { products } = await fetchProducts({ limit: 100 })
 
         const uniqueCategories = Array.from(
           new Map(
-            products.map((product) => [
+            products.map((product: Product) => [
               product.category,
               {
                 id: product.category,
@@ -62,14 +54,14 @@ export default function CategoriesSection() {
         console.error("Failed to load products:", err)
         setError("Categories লোড করা যায়নি।")
       } finally {
-        setLoading(false) // ✅ সফল হোক বা ব্যর্থ, loading শেষ
+        setLoading(false)
       }
     }
 
     loadProducts()
   }, [])
 
-  // Auto-scroll loop
+  // ===== Auto-scroll loop =====
   useEffect(() => {
     if (categories.length === 0) return
 
@@ -139,7 +131,7 @@ export default function CategoriesSection() {
           Browse Our Categories
         </h2>
 
-        {/* ===== Loading Skeleton ===== */}
+        {/* Loading Skeleton */}
         {loading && (
           <div className="flex gap-6 overflow-hidden">
             {[...Array(6)].map((_, idx) => (
@@ -156,19 +148,17 @@ export default function CategoriesSection() {
           </div>
         )}
 
-        {/* ===== Error ===== */}
+        {/* Error */}
         {!loading && error && (
           <p className="text-center text-red-600">{error}</p>
         )}
 
-        {/* ===== Empty ===== */}
+        {/* Empty */}
         {!loading && !error && categories.length === 0 && (
-          <p className="text-center text-slate-500">
-            এখন কোনো category নেই।
-          </p>
+          <p className="text-center text-slate-500">এখন কোনো category নেই।</p>
         )}
 
-        {/* ===== Categories Marquee ===== */}
+        {/* Marquee */}
         {!loading && !error && categories.length > 0 && (
           <div
             ref={scrollRef}
@@ -193,8 +183,7 @@ export default function CategoriesSection() {
                   onClick={(e) => {
                     if (
                       Math.abs(
-                        (scrollRef.current?.scrollLeft || 0) -
-                          startScrollRef.current
+                        (scrollRef.current?.scrollLeft || 0) - startScrollRef.current
                       ) > 5
                     ) {
                       e.preventDefault()

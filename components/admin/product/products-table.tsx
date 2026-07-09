@@ -6,7 +6,6 @@ import { Product } from "@/types/product"
 import { Button } from "@/components/ui/button"
 import AddProductModal from "./add-product-modal"
 
-// demo data (পরে backend/localStorage থেকে আসবে)
 const DEMO_PRODUCTS: Product[] = [
   { id: "1", name: "Apple iPhone 14", price: 899, discount: 10, stock: 10, rating: 4.5, category: "ethnic", image: "/images/download (2).png", description: "Latest iPhone", reviews: 120, inStock: true },
   { id: "2", name: "Dell XPS 13", price: 1399, discount: 0, stock: 8, rating: 4.2, category: "premium", image: "/images/download (2).png", description: "Laptop", reviews: 80, inStock: true },
@@ -57,23 +56,23 @@ export default function ProductsTable() {
   )
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <h1 className="text-2xl md:text-3xl font-bold text-slate-800">
+        <h1 className="text-xl md:text-3xl font-bold text-slate-800">
           Products{" "}
-          <span className="text-lg font-medium text-slate-400">
+          <span className="text-base md:text-lg font-medium text-slate-400">
             ({products.length})
           </span>
         </h1>
-        <Button onClick={handleAddNew} className="bg-red-600 hover:bg-red-700">
+        <Button onClick={handleAddNew} className="bg-red-600 hover:bg-red-700 w-full sm:w-auto">
           <Plus className="w-4 h-4 mr-2" />
           Add Product
         </Button>
       </div>
 
       {/* Search */}
-      <div className="relative max-w-sm">
+      <div className="relative w-full sm:max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
         <input
           type="text"
@@ -84,8 +83,8 @@ export default function ProductsTable() {
         />
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto bg-white rounded-xl shadow-sm border border-slate-100">
+      {/* ===== Desktop Table ===== */}
+      <div className="hidden md:block overflow-x-auto bg-white rounded-xl shadow-sm border border-slate-100">
         <table className="min-w-full text-sm text-left text-slate-700">
           <thead className="bg-slate-50 border-b text-xs text-slate-500 uppercase">
             <tr>
@@ -103,11 +102,7 @@ export default function ProductsTable() {
               filtered.map((product) => (
                 <tr key={product.id} className="hover:bg-slate-50">
                   <td className="px-4 py-3">
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-12 h-12 object-cover rounded border"
-                    />
+                    <img src={product.image} alt={product.name} className="w-12 h-12 object-cover rounded border" />
                   </td>
                   <td className="px-4 py-3 font-medium">{product.name}</td>
                   <td className="px-4 py-3">৳{product.price}</td>
@@ -145,6 +140,73 @@ export default function ProductsTable() {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* ===== Mobile Cards ===== */}
+      <div className="md:hidden space-y-3">
+        {filtered.length > 0 ? (
+          filtered.map((product) => (
+            <div key={product.id} className="bg-white rounded-xl border border-slate-100 shadow-sm p-3">
+              <div className="flex gap-3">
+                <img
+                  src={product.image}
+                  alt={product.name}
+                  className="w-16 h-16 object-cover rounded border shrink-0"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-slate-800 text-sm line-clamp-1">
+                    {product.name}
+                  </p>
+                  <p className="text-xs text-slate-500 capitalize mt-0.5">
+                    {product.category}
+                  </p>
+
+                  <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                    <span className="font-bold text-slate-800 text-sm">৳{product.price}</span>
+                    {product.discount ? (
+                      <span className="text-[10px] bg-red-600 text-white font-bold px-1.5 py-0.5 rounded">
+                        -{product.discount}%
+                      </span>
+                    ) : null}
+                    <span
+                      className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
+                        (product.stock ?? 0) > 0
+                          ? "bg-green-100 text-green-700"
+                          : "bg-red-100 text-red-700"
+                      }`}
+                    >
+                      Stock: {product.stock ?? 0}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2 mt-3 pt-3 border-t border-slate-100">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => handleEdit(product)}
+                >
+                  <Pencil className="w-4 h-4 mr-1" />
+                  Edit
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="flex-1"
+                  onClick={() => handleDelete(product.id)}
+                >
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  Delete
+                </Button>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className="text-center py-10 text-slate-400">কোনো পণ্য পাওয়া যায়নি।</p>
+        )}
       </div>
 
       {/* Modal */}
