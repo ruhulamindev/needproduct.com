@@ -1,10 +1,20 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
+import { useAuth } from "@/contexts/auth-context"
+import { createRequest } from "@/lib/requests-api"
 import { useToast } from "@/hooks/use-toast"
+import { Button } from "@/components/ui/button"
 import { Send, MessageCircle } from "lucide-react"
 
+// 🔴 তোমার WhatsApp নম্বর
+const whatsapp = "8801789011141"
+
 export default function RequestForm() {
+  const { user, loading: authLoading } = useAuth()
+  const { toast } = useToast()
+
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -16,10 +26,6 @@ export default function RequestForm() {
     details: "",
   })
   const [loading, setLoading] = useState(false)
-  const { toast } = useToast()
-
-  // 🔴 তোমার WhatsApp নম্বর
-  const whatsapp = "8801789011141"
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -27,15 +33,32 @@ export default function RequestForm() {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // বাড়তি field গুলো description-এ সাজিয়ে জুড়ি
+  const buildDescription = () => {
+    const parts: string[] = []
+    if (formData.category) parts.push(`Category: ${formData.category}`)
+    if (formData.quantity) parts.push(`পরিমাণ: ${formData.quantity}`)
+    if (formData.email) parts.push(`ইমেইল: ${formData.email}`)
+    if (formData.details) parts.push(`বিস্তারিত: ${formData.details}`)
+    return parts.join(" | ")
+  }
+
+  // ===== DB-তে save =====
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (loading) return
     setLoading(true)
 
-    // পরে backend যুক্ত হলে এখানে আসল API call বসবে
-    setTimeout(() => {
+    try {
+      await createRequest({
+        productName: formData.productName,
+        description: buildDescription() || undefined,
+        budget: formData.budget ? Number(formData.budget) : undefined,
+        phone: formData.phone || undefined,
+      })
       toast({
-        title: "অনুরোধ পাঠানো হয়েছে! ✅",
-        description: "আমরা শীঘ্রই আপনার সাথে যোগাযোগ করব।",
+        title: "অনুরোধ জমা হয়েছে! ✅",
+        description: "Profile → আমার রিকোয়েস্ট-এ দেখতে পাবেন।",
       })
       setFormData({
         name: "",
@@ -47,8 +70,15 @@ export default function RequestForm() {
         budget: "",
         details: "",
       })
+    } catch (err: any) {
+      toast({
+        title: "সমস্যা হয়েছে",
+        description: err.message || "আবার চেষ্টা করুন।",
+        variant: "destructive",
+      })
+    } finally {
       setLoading(false)
-    }, 1000)
+    }
   }
 
   const handleWhatsApp = () => {
@@ -66,6 +96,33 @@ export default function RequestForm() {
 
   const inputClass =
     "w-full p-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+
+  // ===== Login guard =====
+  if (authLoading) {
+    return <div className="max-w-2xl mx-auto h-64 bg-slate-100 rounded-xl animate-pulse" />
+  }
+
+  if (!user) {
+    return (
+      <div className="max-w-2xl mx-auto text-center py-16">
+        <div className="text-6xl mb-4">🔒</div>
+        <h2 className="text-xl font-semibold text-slate-800 mb-2">
+          Request করতে login করুন
+        </h2>
+        <p className="text-slate-600 mb-6">
+          পছন্দের পণ্যের জন্য অনুরোধ করতে হলে প্রথমে login করতে হবে।
+        </p>
+        <div className="flex gap-3 justify-center">
+          <Link href="/login">
+            <Button className="bg-red-600 hover:bg-red-700">Login</Button>
+          </Link>
+          <Link href="/register">
+            <Button variant="outline">Register</Button>
+          </Link>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <form
@@ -125,7 +182,7 @@ export default function RequestForm() {
           className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-lg font-medium transition disabled:opacity-60"
         >
           <Send className="w-4 h-4" />
-          {loading ? "পাঠানো হচ্ছে..." : "অনুরোধ পাঠান"}
+          {loading ? "জমা হচ্ছে..." : "অনুরোধ জমা দিন"}
         </button>
 
         <button
@@ -137,6 +194,10 @@ export default function RequestForm() {
           WhatsApp-এ অনুরোধ পাঠান
         </button>
       </div>
+
+      <p className="text-xs text-slate-400 text-center">
+        "জমা দিন" চাপলে Profile → আমার রিকোয়েস্ট-এ দেখতে পাবেন।
+      </p>
     </form>
   )
 }

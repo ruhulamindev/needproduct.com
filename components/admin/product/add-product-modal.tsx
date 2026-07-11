@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react"
 import { Product } from "@/types/product"
 import { Button } from "@/components/ui/button"
+import { api } from "@/lib/api"
 import { X } from "lucide-react"
 
 type Props = {
-  onSave: (product: Product) => void
+  onSaved: () => void          // save সফল হলে parent-কে জানায় (list reload করে)
   editingProduct: Product | null
   onClose: () => void
 }
@@ -25,8 +26,10 @@ const EMPTY: Product = {
   inStock: true,
 }
 
-export default function AddProductModal({ onSave, editingProduct, onClose }: Props) {
+export default function AddProductModal({ onSaved, editingProduct, onClose }: Props) {
   const [form, setForm] = useState<Product>(EMPTY)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState("")
 
   useEffect(() => {
     setForm(editingProduct ? editingProduct : EMPTY)
@@ -36,7 +39,6 @@ export default function AddProductModal({ onSave, editingProduct, onClose }: Pro
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target
-    // সংখ্যার field গুলো number-এ রূপান্তর
     const numberFields = ["price", "discount", "stock", "rating", "reviews"]
     setForm((prev) => ({
       ...prev,
@@ -44,10 +46,44 @@ export default function AddProductModal({ onSave, editingProduct, onClose }: Pro
     }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // stock অনুযায়ী inStock auto
-    onSave({ ...form, inStock: (form.stock ?? 0) > 0 })
+    if (saving) return
+    setSaving(true)
+    setError("")
+
+    // backend যা চায় শুধু সেই field গুলো পাঠাই
+    const payload = {
+      name: form.name,
+      description: form.description || "",
+      price: Number(form.price),
+      discount: Number(form.discount) || 0,
+      stock: Number(form.stock) || 0,
+      category: form.category,
+      image: form.image,
+      rating: Number(form.rating) || 0,
+      reviews: Number(form.reviews) || 0,
+    }
+
+    try {
+      if (editingProduct) {
+        // Edit → PATCH
+        await api(`/products/${editingProduct.id}`, {
+          method: "PATCH",
+          body: JSON.stringify(payload),
+        })
+      } else {
+        // New → POST
+        await api("/products", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        })
+      }
+      onSaved() // list reload হবে
+    } catch (err: any) {
+      setError(err.message || "সংরক্ষণে সমস্যা হয়েছে")
+      setSaving(false)
+    }
   }
 
   const inputClass =
@@ -55,10 +91,8 @@ export default function AddProductModal({ onSave, editingProduct, onClose }: Pro
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Overlay */}
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
-      {/* Modal */}
       <div className="relative bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-5 border-b sticky top-0 bg-white">
           <h3 className="text-lg font-bold text-slate-800">
@@ -70,6 +104,12 @@ export default function AddProductModal({ onSave, editingProduct, onClose }: Pro
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-3 py-2 rounded-lg">
+              {error}
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">পণ্যের নাম *</label>
             <input name="name" value={form.name} onChange={handleChange} required className={inputClass} />
@@ -119,8 +159,8 @@ export default function AddProductModal({ onSave, editingProduct, onClose }: Pro
           </div>
 
           <div className="flex gap-3 pt-2">
-            <Button type="submit" className="flex-1 bg-red-600 hover:bg-red-700">
-              {editingProduct ? "আপডেট করুন" : "যোগ করুন"}
+            <Button type="submit" disabled={saving} className="flex-1 bg-red-600 hover:bg-red-700">
+              {saving ? "সংরক্ষণ হচ্ছে..." : editingProduct ? "আপডেট করুন" : "যোগ করুন"}
             </Button>
             <Button type="button" variant="outline" onClick={onClose}>
               বাতিল

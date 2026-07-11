@@ -9,13 +9,14 @@ import {
 } from "react"
 import { api } from "@/lib/api"
 
-// backend-এর সাথে মিলিয়ে role = "user" | "admin"
+// backend-এর সাথে মিলিয়ে
 export interface User {
   id: string
   name: string
   email: string
   phone?: string
   address?: string
+  delivery_zone?: string   // 👈 plm3-এর জন্য যোগ
   role: "user" | "admin"
 }
 
@@ -29,6 +30,7 @@ interface AuthContextType {
     phone?: string
   ) => Promise<boolean>
   logout: () => Promise<void>
+  refreshUser: () => Promise<void>   // 👈 plm3-এর জন্য যোগ
   loading: boolean
   error: string | null
 }
@@ -40,21 +42,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // ===== page load-এ: cookie আছে কিনা যাচাই (/auth/me) =====
-  // refresh দিলেও login থাকবে, কারণ token httpOnly cookie-তে
+  // ===== page load-এ: cookie যাচাই (/auth/me) =====
   useEffect(() => {
     async function checkAuth() {
       try {
         const res = await api<{ data: User }>("/auth/me")
         setUser(res.data)
       } catch {
-        setUser(null) // token নেই বা মেয়াদ শেষ
+        setUser(null)
       } finally {
         setLoading(false)
       }
     }
     checkAuth()
   }, [])
+
+  // ===== profile update-এর পর নতুন তথ্য আনতে =====
+  const refreshUser = async () => {
+    try {
+      const res = await api<{ data: User }>("/auth/me")
+      setUser(res.data)
+    } catch {
+      setUser(null)
+    }
+  }
 
   // ===== Login =====
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -64,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         method: "POST",
         body: JSON.stringify({ email, password }),
       })
-      setUser(res.data.user) // token cookie-তে চলে গেছে, আলাদা কিছু করতে হবে না
+      setUser(res.data.user)
       return true
     } catch (err: any) {
       setError(err.message || "Login failed")
@@ -81,13 +92,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   ): Promise<boolean> => {
     setError(null)
     try {
-      // ১. signup (account বানায়, কিন্তু login করায় না)
       await api("/auth/signup", {
         method: "POST",
         body: JSON.stringify({ name, email, password, phone }),
       })
 
-      // ২. signup-এর পর সাথে সাথে login (cookie বসাতে)
       const res = await api<{ data: { user: User } }>("/auth/login", {
         method: "POST",
         body: JSON.stringify({ email, password }),
@@ -103,16 +112,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // ===== Logout =====
   const logout = async () => {
     try {
-      await api("/auth/logout", { method: "POST" }) // backend cookie মুছবে
+      await api("/auth/logout", { method: "POST" })
     } catch {
-      // চুপচাপ — যাই হোক, local state পরিষ্কার করি
+      // যাই হোক, local state পরিষ্কার করি
     }
     setUser(null)
   }
 
   return (
     <AuthContext.Provider
-      value={{ user, login, register, logout, loading, error }}
+      value={{ user, login, register, logout, refreshUser, loading, error }}
     >
       {children}
     </AuthContext.Provider>

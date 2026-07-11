@@ -20,10 +20,10 @@ import { Toaster } from "@/components/ui/toaster"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "GlobalSmart - Premium Traditional Machine",
+  title: "NeedProduct — অনলাইন শপিং, ক্যাশ অন ডেলিভারি",
   description:
-    "Explore our cutting-edge collection of powerful and custom-built machines, crafted for performance, reliability, and innovation.",
-  generator: "LargeSoft Tech",
+    "NeedProduct-এ কেনাকাটা করুন সহজে। মোবাইল, ল্যাপটপ, ফ্যাশন সহ নানা পণ্য — ক্যাশ অন ডেলিভারিতে সারা বাংলাদেশে।",
+  generator: "NeedProduct",
 }
 
 export default function RootLayout({

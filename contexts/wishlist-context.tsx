@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react"
+import { useAuth } from "@/contexts/auth-context"
 
 interface WishlistItem {
   id: string
@@ -29,23 +30,17 @@ type WishlistAction =
 
 const WishlistContext = createContext<{
   items: WishlistItem[]
-  isLoaded: boolean // 👈 নতুন
-  addItem: (item: WishlistItem) => void
+  isLoaded: boolean
+  addItem: (item: WishlistItem) => boolean // 👈 boolean
   removeItem: (id: string) => void
   clearWishlist: () => void
   isInWishlist: (id: string) => boolean
 } | null>(null)
 
-function wishlistReducer(
-  state: WishlistState,
-  action: WishlistAction
-): WishlistState {
+function wishlistReducer(state: WishlistState, action: WishlistAction): WishlistState {
   switch (action.type) {
     case "ADD_ITEM": {
-      const existingItem = state.items.find(
-        (item) => item.id === action.payload.id
-      )
-      if (existingItem) return state
+      if (state.items.find((item) => item.id === action.payload.id)) return state
       return { items: [...state.items, action.payload] }
     }
     case "REMOVE_ITEM":
@@ -60,43 +55,48 @@ function wishlistReducer(
 }
 
 export function WishlistProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth()
   const [state, dispatch] = useReducer(wishlistReducer, { items: [] })
   const [isLoaded, setIsLoaded] = useState(false)
 
+  const storageKey = user ? `wishlist_user_${user.id}` : null
+
   useEffect(() => {
+    setIsLoaded(false)
+    if (!storageKey) {
+      dispatch({ type: "LOAD", payload: [] })
+      setIsLoaded(true)
+      return
+    }
     try {
-      const saved = localStorage.getItem("wishlist")
-      if (saved) dispatch({ type: "LOAD", payload: JSON.parse(saved) })
+      const saved = localStorage.getItem(storageKey)
+      dispatch({ type: "LOAD", payload: saved ? JSON.parse(saved) : [] })
     } catch (err) {
       console.error("Wishlist load failed:", err)
+      dispatch({ type: "LOAD", payload: [] })
     } finally {
       setIsLoaded(true)
     }
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey])
 
   useEffect(() => {
-    if (!isLoaded) return
-    localStorage.setItem("wishlist", JSON.stringify(state.items))
-  }, [state.items, isLoaded])
+    if (!isLoaded || !storageKey) return
+    localStorage.setItem(storageKey, JSON.stringify(state.items))
+  }, [state.items, isLoaded, storageKey])
 
-  const addItem = (item: WishlistItem) =>
+  const addItem = (item: WishlistItem): boolean => {
+    if (!user) return false
     dispatch({ type: "ADD_ITEM", payload: item })
-  const removeItem = (id: string) =>
-    dispatch({ type: "REMOVE_ITEM", payload: id })
+    return true
+  }
+  const removeItem = (id: string) => dispatch({ type: "REMOVE_ITEM", payload: id })
   const clearWishlist = () => dispatch({ type: "CLEAR_WISHLIST" })
-  const isInWishlist = (id: string) =>
-    state.items.some((item) => item.id === id)
+  const isInWishlist = (id: string) => state.items.some((item) => item.id === id)
 
   return (
     <WishlistContext.Provider
-      value={{
-        items: state.items,
-        isLoaded, // 👈 নতুন
-        addItem,
-        removeItem,
-        clearWishlist,
-        isInWishlist,
-      }}
+      value={{ items: state.items, isLoaded, addItem, removeItem, clearWishlist, isInWishlist }}
     >
       {children}
     </WishlistContext.Provider>
@@ -105,8 +105,6 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
 
 export function useWishlist() {
   const context = useContext(WishlistContext)
-  if (!context) {
-    throw new Error("useWishlist must be used within a WishlistProvider")
-  }
+  if (!context) throw new Error("useWishlist must be used within a WishlistProvider")
   return context
 }

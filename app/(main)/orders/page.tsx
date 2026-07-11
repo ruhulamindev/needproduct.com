@@ -1,11 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import Link from "next/link"
 import { fetchMyOrders } from "@/lib/orders-api"
 import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
-import { Package, ChevronDown, ChevronUp, Clock, CheckCircle2, Truck, XCircle, Loader2 } from "lucide-react"
+import { Package, ChevronDown, ChevronUp, Clock, CheckCircle2, Truck, XCircle, Loader2, RefreshCw } from "lucide-react"
 
 const STATUS: Record<string, { label: string; color: string; icon: any }> = {
   pending: { label: "অপেক্ষমাণ", color: "bg-yellow-100 text-yellow-700", icon: Clock },
@@ -19,7 +19,17 @@ export default function OrdersPage() {
   const { user, loading: authLoading } = useAuth()
   const [orders, setOrders] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [openId, setOpenId] = useState<string | null>(null)
+
+  const load = useCallback(async () => {
+    try {
+      const data = await fetchMyOrders()
+      setOrders(data)
+    } catch (e) {
+      console.error(e)
+    }
+  }, [])
 
   useEffect(() => {
     if (authLoading) return
@@ -27,11 +37,14 @@ export default function OrdersPage() {
       setLoading(false)
       return
     }
-    fetchMyOrders()
-      .then(setOrders)
-      .catch((e) => console.error(e))
-      .finally(() => setLoading(false))
-  }, [user, authLoading])
+    load().finally(() => setLoading(false))
+  }, [user, authLoading, load])
+
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await load()
+    setRefreshing(false)
+  }
 
   // login করা নেই
   if (!authLoading && !user) {
@@ -64,7 +77,13 @@ export default function OrdersPage() {
   if (orders.length === 0) {
     return (
       <main className="max-w-4xl mx-auto px-4 py-8 min-h-screen">
-        <h1 className="text-2xl md:text-3xl font-bold text-slate-800 mb-6">My Orders</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-800">My Orders</h1>
+          <button onClick={handleRefresh} className="text-sm text-red-600 flex items-center gap-1">
+            <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
+            রিফ্রেশ
+          </button>
+        </div>
         <div className="text-center py-16">
           <div className="text-6xl mb-4">📦</div>
           <h2 className="text-xl font-semibold text-slate-800 mb-2">এখনো কোনো অর্ডার নেই</h2>
@@ -77,9 +96,19 @@ export default function OrdersPage() {
 
   return (
     <main className="max-w-4xl mx-auto px-4 py-8 min-h-screen">
-      <h1 className="text-2xl md:text-3xl font-bold text-slate-800 mb-6">
-        My Orders <span className="text-lg font-medium text-slate-500">({orders.length})</span>
-      </h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold text-slate-800">
+          My Orders <span className="text-lg font-medium text-slate-500">({orders.length})</span>
+        </h1>
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="text-sm text-red-600 flex items-center gap-1 disabled:opacity-50"
+        >
+          <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
+          রিফ্রেশ
+        </button>
+      </div>
 
       <div className="space-y-4">
         {orders.map((order) => {

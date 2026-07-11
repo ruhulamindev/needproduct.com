@@ -18,8 +18,14 @@ export default function OrderDetailsModal({ order, onClose, statusLabel }: Props
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b sticky top-0 bg-white">
           <div>
-            <h3 className="text-lg font-bold text-slate-800">{order.id}</h3>
-            <p className="text-xs text-slate-500">{order.date}</p>
+            <h3 className="text-lg font-bold text-slate-800">{order.order_code}</h3>
+            <p className="text-xs text-slate-500">
+              {new Date(order.created_at).toLocaleDateString("bn-BD", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            </p>
           </div>
           <button onClick={onClose}>
             <X className="w-5 h-5 text-slate-500" />
@@ -31,9 +37,9 @@ export default function OrderDetailsModal({ order, onClose, statusLabel }: Props
           <div>
             <h4 className="font-semibold text-slate-700 mb-2 text-sm">গ্রাহকের তথ্য</h4>
             <div className="space-y-1.5 text-sm text-slate-600">
-              <p className="flex items-center gap-2"><User className="w-4 h-4 text-slate-400" /> {order.customer.name}</p>
-              <p className="flex items-center gap-2"><Phone className="w-4 h-4 text-slate-400" /> {order.customer.phone}</p>
-              <p className="flex items-center gap-2"><MapPin className="w-4 h-4 text-slate-400" /> {order.customer.address}</p>
+              <p className="flex items-center gap-2"><User className="w-4 h-4 text-slate-400" /> {order.customer_name}</p>
+              <p className="flex items-center gap-2"><Phone className="w-4 h-4 text-slate-400" /> {order.customer_phone}</p>
+              <p className="flex items-start gap-2"><MapPin className="w-4 h-4 text-slate-400 mt-0.5" /> {order.customer_address}</p>
             </div>
           </div>
 
@@ -43,9 +49,9 @@ export default function OrderDetailsModal({ order, onClose, statusLabel }: Props
               <Package className="w-4 h-4" /> পণ্যসমূহ
             </h4>
             <div className="border rounded-lg divide-y">
-              {order.items.map((item, i) => (
-                <div key={i} className="flex justify-between p-3 text-sm">
-                  <span className="text-slate-700">{item.name} × {item.quantity}</span>
+              {order.items.map((item) => (
+                <div key={item.id} className="flex justify-between p-3 text-sm">
+                  <span className="text-slate-700">{item.product_name} × {item.quantity}</span>
                   <span className="font-medium">৳{item.price * item.quantity}</span>
                 </div>
               ))}
@@ -55,9 +61,23 @@ export default function OrderDetailsModal({ order, onClose, statusLabel }: Props
           {/* Summary */}
           <div className="bg-slate-50 rounded-lg p-4 space-y-2 text-sm">
             <div className="flex justify-between">
+              <span className="text-slate-600">Subtotal</span>
+              <span>৳{order.subtotal}</span>
+            </div>
+            {Number(order.discount) > 0 && (
+              <div className="flex justify-between text-green-600">
+                <span>Discount {order.coupon_code ? `(${order.coupon_code})` : ""}</span>
+                <span>-৳{order.discount}</span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span className="text-slate-600">Delivery</span>
+              <span>৳{order.delivery_charge}</span>
+            </div>
+            <div className="flex justify-between">
               <span className="text-slate-600">Payment</span>
               <span className="font-medium">
-                {order.paymentMethod === "cod" ? "ক্যাশ অন ডেলিভারি" : order.paymentMethod}
+                {order.payment_method === "cod" ? "ক্যাশ অন ডেলিভারি" : order.payment_method}
               </span>
             </div>
             <div className="flex justify-between">

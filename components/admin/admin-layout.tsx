@@ -9,6 +9,7 @@ import {
   ShoppingBag,
   Users,
   Settings,
+  ClipboardList,
   Menu,
   Store,
   LogOut,
@@ -20,6 +21,7 @@ const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/products", label: "Products", icon: Package },
   { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
+    { href: "/admin/requests", label: "Requests", icon: ClipboardList },  // 👈 নতুন
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ]

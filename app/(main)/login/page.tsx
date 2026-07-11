@@ -90,6 +90,16 @@ export default function LoginPage() {
             </div>
           </div>
 
+          {/* Password field-এর পরে এটা যোগ করো */}
+          <div className="flex justify-end">
+            <Link
+              href="/forgot-password"
+              className="text-sm text-red-600 hover:underline"
+            >
+              পাসওয়ার্ড ভুলে গেছেন?
+            </Link>
+          </div>
+
           <button
             type="submit"
             disabled={loading}

@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react"
+import { useAuth } from "@/contexts/auth-context"
 
 interface CartItem {
   id: string
@@ -34,8 +35,8 @@ type CartAction =
 const CartContext = createContext<{
   items: CartItem[]
   total: number
-  isLoaded: boolean // 👈 নতুন
-  addItem: (item: CartItem) => void
+  isLoaded: boolean
+  addItem: (item: CartItem) => boolean // 👈 true = যোগ হয়েছে, false = login লাগবে
   removeItem: (id: string) => void
   updateQuantity: (id: string, quantity: number) => void
   clearCart: () => void
@@ -48,9 +49,7 @@ function calculateTotal(items: CartItem[]) {
 function cartReducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
     case "ADD_ITEM": {
-      const existingItem = state.items.find(
-        (item) => item.id === action.payload.id
-      )
+      const existingItem = state.items.find((item) => item.id === action.payload.id)
       let updatedItems: CartItem[]
       if (existingItem) {
         updatedItems = state.items.map((item) =>
@@ -64,9 +63,7 @@ function cartReducer(state: CartState, action: CartAction): CartState {
       return { items: updatedItems, total: calculateTotal(updatedItems) }
     }
     case "REMOVE_ITEM": {
-      const filteredItems = state.items.filter(
-        (item) => item.id !== action.payload
-      )
+      const filteredItems = state.items.filter((item) => item.id !== action.payload)
       return { items: filteredItems, total: calculateTotal(filteredItems) }
     }
     case "UPDATE_QUANTITY": {
@@ -89,31 +86,51 @@ function cartReducer(state: CartState, action: CartAction): CartState {
 }
 
 export function CartProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth()
   const [state, dispatch] = useReducer(cartReducer, { items: [], total: 0 })
   const [isLoaded, setIsLoaded] = useState(false)
 
+  // user অনুযায়ী key — login না থাকলে null
+  const storageKey = user ? `cart_user_${user.id}` : null
+
+  // user বদলালে (login/logout) — সেই user-এর data লোড করি
   useEffect(() => {
+    setIsLoaded(false)
+
+    if (!storageKey) {
+      // guest — খালি
+      dispatch({ type: "LOAD", payload: [] })
+      setIsLoaded(true)
+      return
+    }
+
     try {
-      const saved = localStorage.getItem("cart")
-      if (saved) dispatch({ type: "LOAD", payload: JSON.parse(saved) })
+      const saved = localStorage.getItem(storageKey)
+      dispatch({ type: "LOAD", payload: saved ? JSON.parse(saved) : [] })
     } catch (err) {
       console.error("Cart load failed:", err)
+      dispatch({ type: "LOAD", payload: [] })
     } finally {
       setIsLoaded(true)
     }
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey])
 
+  // বদলালে save — শুধু login করা user-এর জন্য
   useEffect(() => {
-    if (!isLoaded) return
-    localStorage.setItem("cart", JSON.stringify(state.items))
-  }, [state.items, isLoaded])
+    if (!isLoaded || !storageKey) return
+    localStorage.setItem(storageKey, JSON.stringify(state.items))
+  }, [state.items, isLoaded, storageKey])
 
-  const addItem = (item: CartItem) => {
-    if (item.quantity <= 0) return
+  // 👇 login না থাকলে false ফেরত (component "login করুন" দেখাবে)
+  const addItem = (item: CartItem): boolean => {
+    if (!user) return false
+    if (item.quantity <= 0) return false
     dispatch({ type: "ADD_ITEM", payload: item })
+    return true
   }
-  const removeItem = (id: string) =>
-    dispatch({ type: "REMOVE_ITEM", payload: id })
+
+  const removeItem = (id: string) => dispatch({ type: "REMOVE_ITEM", payload: id })
   const updateQuantity = (id: string, quantity: number) => {
     if (quantity < 0) return
     dispatch({ type: "UPDATE_QUANTITY", payload: { id, quantity } })
@@ -125,7 +142,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       value={{
         items: state.items,
         total: state.total,
-        isLoaded, // 👈 নতুন
+        isLoaded,
         addItem,
         removeItem,
         updateQuantity,
@@ -139,8 +156,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
 export function useCart() {
   const context = useContext(CartContext)
-  if (!context) {
-    throw new Error("useCart must be used within a CartProvider")
-  }
+  if (!context) throw new Error("useCart must be used within a CartProvider")
   return context
 }

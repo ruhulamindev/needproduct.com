@@ -1,58 +1,55 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import AdminLayout from "@/components/admin/admin-layout"
 import UsersTable from "@/components/admin/users/users-table"
+import { api } from "@/lib/api"
 import { User } from "@/types/user"
 
-// demo data (পরে backend থেকে আসবে)
-const DEMO_USERS: User[] = [
-  {
-    id: "1",
-    name: "Ruhul Amin",
-    email: "ruhul@example.com",
-    createdAt: "2025-12-20T10:00:00Z",
-    updatedAt: "2026-01-02T15:00:00Z",
-    isActive: true,
-    profilePicture: "",
-    phoneNumber: "+8801712345678",
-  },
-  {
-    id: "2",
-    name: "করিম উদ্দিন",
-    email: "karim@example.com",
-    createdAt: "2025-12-21T12:00:00Z",
-    updatedAt: "2026-01-03T09:00:00Z",
-    isActive: true,
-    profilePicture: "",
-    phoneNumber: "+8801812345678",
-  },
-  {
-    id: "3",
-    name: "সালমা বেগম",
-    email: "salma@example.com",
-    createdAt: "2025-12-22T12:00:00Z",
-    updatedAt: "2026-01-03T09:00:00Z",
-    isActive: false,
-    profilePicture: "",
-    phoneNumber: "",
-  },
-]
-
 export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>(DEMO_USERS)
+  const [users, setUsers] = useState<User[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const toggleActiveStatus = (id: string) => {
-    setUsers((prev) =>
-      prev.map((user) =>
-        user.id === id ? { ...user, isActive: !user.isActive } : user
-      )
-    )
+  // ===== API থেকে সব customer =====
+  const loadUsers = async () => {
+    try {
+      setLoading(true)
+      const res = await api<{ data: User[] }>("/users")
+      setUsers(res.data)
+    } catch (err) {
+      console.error("Failed to load users:", err)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const deleteUser = (id: string) => {
-    if (confirm("এই গ্রাহককে মুছে ফেলতে চান?")) {
-      setUsers((prev) => prev.filter((user) => user.id !== id))
+  useEffect(() => {
+    loadUsers()
+  }, [])
+
+  // active/inactive toggle
+  const toggleActiveStatus = async (id: string) => {
+    const prev = users
+    // optimistic — সাথে সাথে UI-তে বদলাই
+    setUsers((list) =>
+      list.map((u) => (u.id === id ? { ...u, is_active: !u.is_active } : u))
+    )
+    try {
+      await api(`/users/${id}/toggle-active`, { method: "PATCH" })
+    } catch (err: any) {
+      setUsers(prev) // fail করলে ফেরাও
+      alert(err.message || "Status বদলাতে সমস্যা হয়েছে")
+    }
+  }
+
+  // delete
+  const deleteUser = async (id: string) => {
+    if (!confirm("এই গ্রাহককে মুছে ফেলতে চান?")) return
+    try {
+      await api(`/users/${id}`, { method: "DELETE" })
+      setUsers((prev) => prev.filter((u) => u.id !== id))
+    } catch (err: any) {
+      alert(err.message || "মুছতে সমস্যা হয়েছে")
     }
   }
 
@@ -60,6 +57,7 @@ export default function UsersPage() {
     <AdminLayout>
       <UsersTable
         users={users}
+        loading={loading}
         onToggleActive={toggleActiveStatus}
         onDelete={deleteUser}
       />
