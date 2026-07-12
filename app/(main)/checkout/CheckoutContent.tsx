@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { useSearchParams, useRouter } from "next/navigation"
 import { validateCoupon } from "@/lib/coupons"
 import { createOrder } from "@/lib/orders-api"
-import { Truck, MessageCircle } from "lucide-react"
+import { Truck, MessageCircle, ShoppingBag } from "lucide-react"
 
 // 🔴 তোমার WhatsApp নম্বর
 const WHATSAPP = "8801789011141"
@@ -56,7 +56,24 @@ export default function CheckoutPage() {
     formData.paymentMethod &&
     items.length > 0
 
-  const handleSubmit = async (e: React.FormEvent) => {
+// অর্ডার তৈরির common অংশ — দুই button-ই এটা ব্যবহার করবে
+  const placeOrder = async () => {
+    const order = await createOrder({
+      customerName: formData.name,
+      customerPhone: formData.phone,
+      customerAddress: formData.address,
+      deliveryZone: formData.deliveryZone as "dhaka" | "outside",
+      couponCode: couponCode || undefined,
+      items: items.map((item) => ({
+        productId: item.id,
+        quantity: item.quantity,
+      })),
+    })
+    return order
+  }
+
+  // ===== Button ১: শুধু অর্ডার (WhatsApp ছাড়া) =====
+  const handleOrderOnly = async (e: React.FormEvent) => {
     e.preventDefault()
     if (submitting) return
 
@@ -64,20 +81,26 @@ export default function CheckoutPage() {
     setError("")
 
     try {
-      // ===== ১. Order database-এ save (backend নিজে দাম হিসাব করবে) =====
-      const order = await createOrder({
-        customerName: formData.name,
-        customerPhone: formData.phone,
-        customerAddress: formData.address,
-        deliveryZone: formData.deliveryZone as "dhaka" | "outside",
-        couponCode: couponCode || undefined,
-        items: items.map((item) => ({
-          productId: item.id,
-          quantity: item.quantity,
-        })),
-      })
+      await placeOrder()
+      clearCart()
+      router.push("/orders")
+    } catch (err: any) {
+      setError(err.message || "অর্ডার করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।")
+      setSubmitting(false)
+    }
+  }
 
-      // ===== ২. WhatsApp text (backend যে order দিল সেটা দিয়ে) =====
+  // ===== Button ২: অর্ডার + WhatsApp =====
+  const handleOrderWithWhatsApp = async () => {
+    if (submitting) return
+
+    setSubmitting(true)
+    setError("")
+
+    try {
+      const order = await placeOrder()
+
+      // WhatsApp text বানাই
       let text = `*নতুন অর্ডার — NeedProduct*%0A%0A`
       text += `*অর্ডার নং:* ${order.order_code}%0A`
       text += `*গ্রাহক:* ${formData.name}%0A`
@@ -91,7 +114,6 @@ export default function CheckoutPage() {
       text += `%0A*সর্বমোট: ৳${order.total}*`
       text += `%0A%0A*পেমেন্ট:* ক্যাশ অন ডেলিভারি`
 
-      // ===== ৩. WhatsApp + cart clear + orders page =====
       window.open(`https://wa.me/${WHATSAPP}?text=${text}`, "_blank")
       clearCart()
       router.push("/orders")
@@ -124,7 +146,7 @@ export default function CheckoutPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <form onSubmit={handleOrderOnly} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left — Billing */}
           <div className="space-y-4">
             <h3 className="text-xl font-semibold mb-2">গ্রাহকের তথ্য</h3>
@@ -190,11 +212,33 @@ export default function CheckoutPage() {
             </div>
 
             {canSubmit ? (
-              <Button type="submit" disabled={submitting}
-                className="w-full bg-green-600 hover:bg-green-700 flex items-center justify-center gap-2">
-                <MessageCircle className="w-4 h-4" />
-                {submitting ? "অর্ডার হচ্ছে..." : "অর্ডার নিশ্চিত করুন"}
-              </Button>
+              <div className="space-y-3">
+                {/* Button ১ — উপরে: শুধু অর্ডার */}
+                <Button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full bg-red-600 hover:bg-red-700 flex items-center justify-center gap-2 py-2.5"
+                >
+                  <ShoppingBag className="w-4 h-4" />
+                  {submitting ? "অর্ডার হচ্ছে..." : "অর্ডার নিশ্চিত করুন"}
+                </Button>
+
+                {/* Button ২ — নিচে: অর্ডার + WhatsApp */}
+                <Button
+                  type="button"
+                  onClick={handleOrderWithWhatsApp}
+                  disabled={submitting}
+                  variant="outline"
+                  className="w-full border-green-600 text-green-700 hover:bg-green-50 flex items-center justify-center gap-2 py-2.5"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  {submitting ? "অর্ডার হচ্ছে..." : "অর্ডার + WhatsApp-এ পাঠান"}
+                </Button>
+
+                <p className="text-xs text-slate-400 text-center">
+                  দুইভাবেই অর্ডার সংরক্ষিত হবে। WhatsApp দিলে আমরা দ্রুত যোগাযোগ করতে পারব।
+                </p>
+              </div>
             ) : (
               <p className="text-center text-sm text-slate-400 border border-dashed rounded py-3">
                 সব তথ্য ও পেমেন্ট পদ্ধতি পূরণ করলে অর্ডার বাটন আসবে

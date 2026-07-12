@@ -7,79 +7,129 @@ import { api } from "@/lib/api"
 import { X } from "lucide-react"
 
 type Props = {
-  onSaved: () => void          // save সফল হলে parent-কে জানায় (list reload করে)
+  onSaved: () => void
   editingProduct: Product | null
   onClose: () => void
 }
 
-const EMPTY: Product = {
-  id: "",
+// form-এ সব string — তাই 0 লেগে থাকে না
+type FormState = {
+  name: string
+  price: string
+  discount: string
+  stock: string
+  category: string
+  image: string
+  description: string
+  rating: string
+  reviews: string
+}
+
+const EMPTY: FormState = {
   name: "",
-  price: 0,
-  discount: 0,
-  stock: 0,
-  rating: 0,
+  price: "",
+  discount: "",
+  stock: "",
   category: "",
   image: "",
   description: "",
-  reviews: 0,
-  inStock: true,
+  rating: "",
+  reviews: "",
 }
 
 export default function AddProductModal({ onSaved, editingProduct, onClose }: Props) {
-  const [form, setForm] = useState<Product>(EMPTY)
+  const [form, setForm] = useState<FormState>(EMPTY)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
 
   useEffect(() => {
-    setForm(editingProduct ? editingProduct : EMPTY)
+    if (editingProduct) {
+      // edit — আসল মান বসাই (0 হলে খালি দেখাই)
+      setForm({
+        name: editingProduct.name || "",
+        price: editingProduct.price ? String(editingProduct.price) : "",
+        discount: editingProduct.discount ? String(editingProduct.discount) : "",
+        stock: editingProduct.stock ? String(editingProduct.stock) : "",
+        category: editingProduct.category || "",
+        image: editingProduct.image || "",
+        description: editingProduct.description || "",
+        rating: editingProduct.rating ? String(editingProduct.rating) : "",
+        reviews: editingProduct.reviews ? String(editingProduct.reviews) : "",
+      })
+    } else {
+      setForm(EMPTY)
+    }
   }, [editingProduct])
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target
-    const numberFields = ["price", "discount", "stock", "rating", "reviews"]
-    setForm((prev) => ({
-      ...prev,
-      [name]: numberFields.includes(name) ? Number(value) : value,
-    }))
+    setForm((prev) => ({ ...prev, [name]: value }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (saving) return
+
+    // ===== Validation =====
+    const price = Number(form.price)
+    const stock = Number(form.stock)
+    const discount = Number(form.discount) || 0
+
+    if (!form.name.trim()) {
+      setError("পণ্যের নাম দিন")
+      return
+    }
+    if (!form.price || price < 1) {
+      setError("দাম কমপক্ষে ৳1 হতে হবে")
+      return
+    }
+    if (!form.stock || stock < 1) {
+      setError("স্টক কমপক্ষে 1 হতে হবে")
+      return
+    }
+    if (discount < 0 || discount > 100) {
+      setError("ছাড় 0 থেকে 100-এর মধ্যে হতে হবে")
+      return
+    }
+    if (!form.category.trim()) {
+      setError("Category দিন")
+      return
+    }
+    if (!form.image.trim()) {
+      setError("ছবির URL/path দিন")
+      return
+    }
+
     setSaving(true)
     setError("")
 
-    // backend যা চায় শুধু সেই field গুলো পাঠাই
     const payload = {
-      name: form.name,
-      description: form.description || "",
-      price: Number(form.price),
-      discount: Number(form.discount) || 0,
-      stock: Number(form.stock) || 0,
-      category: form.category,
-      image: form.image,
+      name: form.name.trim(),
+      description: form.description.trim(),
+      price,
+      discount,
+      stock,
+      category: form.category.trim(),
+      image: form.image.trim(),
       rating: Number(form.rating) || 0,
       reviews: Number(form.reviews) || 0,
     }
 
     try {
       if (editingProduct) {
-        // Edit → PATCH
         await api(`/products/${editingProduct.id}`, {
           method: "PATCH",
           body: JSON.stringify(payload),
         })
       } else {
-        // New → POST
         await api("/products", {
           method: "POST",
           body: JSON.stringify(payload),
         })
       }
-      onSaved() // list reload হবে
+      onSaved()
     } catch (err: any) {
       setError(err.message || "সংরক্ষণে সমস্যা হয়েছে")
       setSaving(false)
@@ -112,50 +162,50 @@ export default function AddProductModal({ onSaved, editingProduct, onClose }: Pr
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">পণ্যের নাম *</label>
-            <input name="name" value={form.name} onChange={handleChange} required className={inputClass} />
+            <input name="name" value={form.name} onChange={handleChange} placeholder="যেমন: Samsung Galaxy A54" className={inputClass} />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">দাম (৳) *</label>
-              <input name="price" type="number" min="0" value={form.price} onChange={handleChange} required className={inputClass} />
+              <input name="price" type="number" min="1" value={form.price} onChange={handleChange} placeholder="যেমন: 1200" className={inputClass} />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">ছাড় (%)</label>
-              <input name="discount" type="number" min="0" max="100" value={form.discount} onChange={handleChange} className={inputClass} />
+              <input name="discount" type="number" min="0" max="100" value={form.discount} onChange={handleChange} placeholder="0" className={inputClass} />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">স্টক *</label>
-              <input name="stock" type="number" min="0" value={form.stock} onChange={handleChange} required className={inputClass} />
+              <input name="stock" type="number" min="1" value={form.stock} onChange={handleChange} placeholder="যেমন: 10" className={inputClass} />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Category *</label>
-              <input name="category" value={form.category} onChange={handleChange} required className={inputClass} />
+              <input name="category" value={form.category} onChange={handleChange} placeholder="যেমন: mobile" className={inputClass} />
             </div>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">ছবির URL/path *</label>
-            <input name="image" value={form.image} onChange={handleChange} required placeholder="/images/product.png" className={inputClass} />
+            <input name="image" value={form.image} onChange={handleChange} placeholder="/images/product.png" className={inputClass} />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Rating (0-5)</label>
-              <input name="rating" type="number" min="0" max="5" step="0.1" value={form.rating} onChange={handleChange} className={inputClass} />
+              <input name="rating" type="number" min="0" max="5" step="0.1" value={form.rating} onChange={handleChange} placeholder="0" className={inputClass} />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Reviews</label>
-              <input name="reviews" type="number" min="0" value={form.reviews} onChange={handleChange} className={inputClass} />
+              <input name="reviews" type="number" min="0" value={form.reviews} onChange={handleChange} placeholder="0" className={inputClass} />
             </div>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">বিবরণ</label>
-            <textarea name="description" value={form.description} onChange={handleChange} rows={3} className={inputClass} />
+            <textarea name="description" value={form.description} onChange={handleChange} rows={3} placeholder="পণ্যের বিবরণ..." className={inputClass} />
           </div>
 
           <div className="flex gap-3 pt-2">
