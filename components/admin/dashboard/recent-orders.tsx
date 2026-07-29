@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { api } from "@/lib/api"
+import { adminApi as api } from "@/lib/api"
 
 const statusStyle: Record<string, string> = {
   delivered: "bg-green-100 text-green-700",

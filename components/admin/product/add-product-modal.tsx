@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Product } from "@/types/product"
 import { Button } from "@/components/ui/button"
-import { api } from "@/lib/api"
+import { adminApi as api } from "@/lib/api"
 import { X } from "lucide-react"
 
 type Props = {

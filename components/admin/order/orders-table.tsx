@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Eye, Search, Phone } from "lucide-react"
-import { api } from "@/lib/api"
+import { adminApi as api } from "@/lib/api"
 import OrderDetailsModal from "./order-details-modal"
 
 export type AdminOrder = {

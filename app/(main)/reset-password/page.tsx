@@ -3,7 +3,7 @@
 import { useState, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { api } from "@/lib/api"
+import { adminApi as api } from "@/lib/api"
 import { Lock, Eye, EyeOff } from "lucide-react"
 
 function ResetPasswordForm() {

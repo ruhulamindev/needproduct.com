@@ -1,5 +1,5 @@
 // lib/requests-api.ts
-import { api } from "./api"
+import { api, adminApi } from "./api"
 
 export async function createRequest(input: {
   productName: string
@@ -21,13 +21,13 @@ export async function fetchMyRequests() {
 
 /** admin — সব request */
 export async function fetchAllRequests() {
-  const res = await api<{ data: any[] }>("/requests")
+  const res = await adminApi<{ data: any[] }>("/requests")
   return res.data
 }
 
 /** admin — status বদলানো */
 export async function updateRequestStatus(id: string, status: string) {
-  const res = await api<{ data: any }>(`/requests/${id}/status`, {
+  const res = await adminApi<{ data: any }>(`/requests/${id}/status`, {
     method: "PATCH",
     body: JSON.stringify({ status }),
   })

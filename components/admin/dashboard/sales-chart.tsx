@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { api } from "@/lib/api"
+import { adminApi as api } from "@/lib/api"
 import { Bar } from "react-chartjs-2"
 import {
   Chart as ChartJS,

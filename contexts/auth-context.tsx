@@ -7,7 +7,7 @@ import {
   useEffect,
   type ReactNode,
 } from "react"
-import { api } from "@/lib/api"
+import { adminApi as api } from "@/lib/api"
 
 // backend-এর সাথে মিলিয়ে
 export interface User {

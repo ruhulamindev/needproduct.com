@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { api } from "@/lib/api"
+import { adminApi as api } from "@/lib/api"
 import { Mail, ArrowLeft } from "lucide-react"
 
 export default function ForgotPasswordPage() {

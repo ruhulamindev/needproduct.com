@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Pencil, Trash2, Plus, Search } from "lucide-react"
 import { Product } from "@/types/product"
 import { Button } from "@/components/ui/button"
-import { api } from "@/lib/api"
+import { adminApi as api } from "@/lib/api"
 import { fetchProducts } from "@/lib/products-api"
 import AddProductModal from "./add-product-modal"
 
